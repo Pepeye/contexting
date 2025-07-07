@@ -315,6 +315,6 @@ Do something specific to my project.
 - `prp_spec.md` - Specification template
 - `prp_planning_base.md` - Planning template with diagrams
 
-### Example PRP
+### Previo PRP
 
-- `example-from-workshop-mcp-crawl4ai-refactor-1.md` - Real-world refactoring example
+- [`prp/example.md`](prp/example.md) - My example prds; currently simplifying
