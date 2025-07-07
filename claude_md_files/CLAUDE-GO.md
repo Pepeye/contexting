@@ -65,17 +65,39 @@ go-project/
 ### Error Handling Patterns
 
 ```go
-// Custom error types
-type ValidationError struct {
-    Field   string
+// Custom error types with structured information
+type AppError struct {
+    Code    string
     Message string
+    Err     error
 }
 
-func (e *ValidationError) Error() string {
-    return fmt.Sprintf("validation failed for %s: %s", e.Field, e.Message)
+func (e *AppError) Error() string {
+    return fmt.Sprintf("[%s] %s", e.Code, e.Message)
 }
 
-// Error wrapping
+func (e *AppError) Unwrap() error {
+    return e.Err
+}
+
+// Repository pattern with proper error handling
+func GetUser(ctx context.Context, id int64) (*User, error) {
+    user, err := db.QueryUser(ctx, id)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return nil, &AppError{
+                Code:    "USER_NOT_FOUND",
+                Message: fmt.Sprintf("user with id %d not found", id),
+                Err:     err,
+            }
+        }
+        return nil, fmt.Errorf("failed to query user: %w", err)
+    }
+    
+    return user, nil
+}
+
+// Error wrapping with context
 func processFile(filename string) error {
     file, err := os.Open(filename)
     if err != nil {
@@ -120,17 +142,71 @@ func ProcessData(r Reader) (*Result, error) {
 ### Concurrency Patterns
 
 ```go
-// Worker pool pattern
-func processJobs(jobs <-chan Job, results chan<- Result, wg *sync.WaitGroup) {
-    defer wg.Done()
-    for job := range jobs {
-        result := processJob(job)
-        results <- result
+// Enhanced worker pool pattern with context
+func ProcessItems(ctx context.Context, items []Item) error {
+    const numWorkers = 10
+    
+    jobs := make(chan Item, len(items))
+    results := make(chan error, len(items))
+    
+    // Start workers
+    var wg sync.WaitGroup
+    for i := 0; i < numWorkers; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            worker(ctx, jobs, results)
+        }()
+    }
+    
+    // Send jobs
+    go func() {
+        defer close(jobs)
+        for _, item := range items {
+            select {
+            case jobs <- item:
+            case <-ctx.Done():
+                return
+            }
+        }
+    }()
+    
+    // Wait for completion
+    go func() {
+        wg.Wait()
+        close(results)
+    }()
+    
+    // Collect results
+    for err := range results {
+        if err != nil {
+            return fmt.Errorf("processing failed: %w", err)
+        }
+    }
+    
+    return nil
+}
+
+func worker(ctx context.Context, jobs <-chan Item, results chan<- error) {
+    for {
+        select {
+        case job, ok := <-jobs:
+            if !ok {
+                return
+            }
+            err := processItem(ctx, job)
+            results <- err
+        case <-ctx.Done():
+            return
+        }
     }
 }
 
-// Context usage
+// Context usage with timeout
 func fetchData(ctx context.Context, url string) (*Data, error) {
+    ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+    defer cancel()
+    
     req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
     if err != nil {
         return nil, fmt.Errorf("creating request: %w", err)
@@ -142,8 +218,16 @@ func fetchData(ctx context.Context, url string) (*Data, error) {
     }
     defer resp.Body.Close()
 
-    // Parse response...
-    return data, nil
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+    }
+
+    var data Data
+    if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+        return nil, fmt.Errorf("decoding response: %w", err)
+    }
+
+    return &data, nil
 }
 ```
 

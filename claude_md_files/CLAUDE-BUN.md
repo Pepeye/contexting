@@ -80,19 +80,56 @@ bun-project/
 ### Error Handling Patterns
 
 ```typescript
-// Custom error classes
-export class ValidationError extends Error {
+import { z } from 'zod';
+
+// Enhanced error classes with structured data
+export class AppError extends Error {
   constructor(
     message: string,
-    public readonly field: string
+    public readonly code: string,
+    public readonly context?: Record<string, unknown>
   ) {
     super(message);
+    this.name = 'AppError';
+  }
+}
+
+export class ValidationError extends AppError {
+  constructor(
+    message: string,
+    public readonly field: string,
+    public readonly value?: unknown
+  ) {
+    super(message, 'VALIDATION_ERROR', { field, value });
     this.name = 'ValidationError';
   }
 }
 
-// Result pattern
-export type Result<T, E = Error> = 
+// Input validation with Zod
+const CreateUserRequest = z.object({
+  email: z.string().email(),
+  name: z.string().min(2).max(50),
+  password: z.string().min(8)
+});
+
+export function validateUserInput(input: unknown): CreateUserRequest {
+  try {
+    return CreateUserRequest.parse(input);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const firstError = error.errors[0];
+      throw new ValidationError(
+        `Invalid ${firstError.path.join('.')}: ${firstError.message}`,
+        firstError.path.join('.'),
+        firstError.received
+      );
+    }
+    throw new AppError('Unknown validation error', 'VALIDATION_ERROR');
+  }
+}
+
+// Result pattern with enhanced error handling
+export type Result<T, E = AppError> = 
   | { success: true; data: T }
   | { success: false; error: E };
 
@@ -105,7 +142,10 @@ export async function safeOperation<T>(
   } catch (error) {
     return { 
       success: false, 
-      error: error instanceof Error ? error : new Error(String(error))
+      error: error instanceof AppError ? error : new AppError(
+        error instanceof Error ? error.message : String(error),
+        'UNKNOWN_ERROR'
+      )
     };
   }
 }
@@ -139,22 +179,103 @@ export type UpdateUserRequest = Partial<Pick<User, 'name' | 'email'>>;
 
 ## Bun-Specific Patterns
 
+### Async Processing with Rate Limiting
+
+```typescript
+// Rate-limited async processing
+class RateLimiter {
+  private queue: Array<() => void> = [];
+  private running = 0;
+
+  constructor(private maxConcurrent: number = 10) {}
+
+  async acquire(): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.running < this.maxConcurrent) {
+        this.running++;
+        resolve();
+      } else {
+        this.queue.push(() => {
+          this.running++;
+          resolve();
+        });
+      }
+    });
+  }
+
+  release(): void {
+    this.running--;
+    if (this.queue.length > 0) {
+      const next = this.queue.shift()!;
+      next();
+    }
+  }
+}
+
+const rateLimiter = new RateLimiter(5);
+
+export async function processItems(items: Item[]): Promise<ProcessedItem[]> {
+  return Promise.all(
+    items.map(async (item) => {
+      await rateLimiter.acquire();
+      try {
+        return await processItem(item);
+      } finally {
+        rateLimiter.release();
+      }
+    })
+  );
+}
+```
+
 ### File System Operations
 
 ```typescript
-// Using Bun's file API
-export async function readJsonFile<T>(path: string): Promise<T> {
-  const file = Bun.file(path);
-  
-  if (!(await file.exists())) {
-    throw new Error(`File not found: ${path}`);
-  }
-  
-  return await file.json();
+// Using Bun's file API with error handling
+export async function readJsonFile<T>(path: string): Promise<Result<T>> {
+  return safeOperation(async () => {
+    const file = Bun.file(path);
+    
+    if (!(await file.exists())) {
+      throw new AppError(`File not found: ${path}`, 'FILE_NOT_FOUND');
+    }
+    
+    const content = await file.json();
+    return content as T;
+  });
 }
 
-export async function writeJsonFile(path: string, data: unknown): Promise<void> {
-  await Bun.write(path, JSON.stringify(data, null, 2));
+export async function writeJsonFile(path: string, data: unknown): Promise<Result<void>> {
+  return safeOperation(async () => {
+    const jsonString = JSON.stringify(data, null, 2);
+    await Bun.write(path, jsonString);
+  });
+}
+
+// Efficient file processing with streaming
+export async function processLargeFile(path: string): Promise<Result<ProcessResult>> {
+  return safeOperation(async () => {
+    const file = Bun.file(path);
+    const stream = file.stream();
+    const reader = stream.getReader();
+    
+    let processed = 0;
+    const decoder = new TextDecoder();
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        processed += await processChunk(chunk);
+      }
+      
+      return { totalProcessed: processed };
+    } finally {
+      reader.releaseLock();
+    }
+  });
 }
 ```
 
