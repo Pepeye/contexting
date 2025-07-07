@@ -1,44 +1,8 @@
-# PRP (Product Requirement prompts)
-
-- A collection of prompts i use in my every day work
-
-## Video Walkthrough
-
-👉 https://www.youtube.com/watch?v=KVOZ9s1S9Gk&lc=UgzfwxvFjo6pKEyPo1R4AaABAg
-
-### ☕ Support This Work
-
-**Found value in these resources?**
-
-👉 **Buy me a coffee:** https://coff.ee/wirasm
-
-I spent a considerable amount of time creating these resources and prompts. If you find value in this project, please consider buying me a coffee to support my work.
-
-That will help me maintain and improve the resources available for free
-
----
-
-### 🎯 Transform Your Team with AI Engineering Workshops
-
-**Ready to move beyond toy demos to production-ready AI systems?**
-
-👉 **Book a workshop:** https://www.rasmuswiding.com/
-
-✅ **What you'll get:**
-
-- Put your team on a path to become AI power users
-- Learn the exact PRP methodology used by top engineering teams
-- Hands-on training with Claude Code, PRPs, and real codebases
-- From beginner to advanced AI engineering workshops for teams and individuals
-
-💡 **Perfect for:** Engineering teams, Product teams, and developers who want AI that actually works in production
-
-Let's talk!
-Contact me directly at rasmus@widinglabs.com
-
 # AI Engineering Resources for Claude Code
 
-A comprehensive library of assets and context engineering for Agentic Engineering, optimized for Claude Code. This repository provides the Product Requirement Prompt (PRP) methodology, pre-configured commands, and extensive documentation to enable AI-assisted development that delivers production-ready code on the first pass.
+Having previously developed my own context-rich PRD files, I stumbled upon Wisram's (https://github.com/Wirasm) excellent work and was immediately drawn to its structured approach and clear methodology. I particularly liked the term "Product Requirement Prompt (PRP)" and decided to adopt and extend this framework to the languages I typically code with. This repository now serves as a comprehensive library of assets and context engineering for Agentic Engineering, optimized for Claude Code, providing the PRP methodology, pre-configured commands, and extensive documentation to enable AI-assisted development that delivers production-ready code on the first pass. An example of a PRP created using this approach can be found at [`@prp/example.md`](prp/example.md).
+
+This repository was forked from the excellent work of Wisram (https://github.com/Wirasm/PRPs-agentic-eng).
 
 ## What is PRP?
 
@@ -354,17 +318,3 @@ Do something specific to my project.
 ### Example PRP
 
 - `example-from-workshop-mcp-crawl4ai-refactor-1.md` - Real-world refactoring example
-
-## License
-
-MIT License
-
-## Support
-
-I spent a considerable amount of time creating these resources and prompts. If you find value in this project, please consider buying me a coffee to support my work.
-
-👉 **Buy me a coffee:** https://coff.ee/wirasm
-
----
-
-Remember: The goal is one-pass implementation success through comprehensive context. Happy coding with Claude Code!
