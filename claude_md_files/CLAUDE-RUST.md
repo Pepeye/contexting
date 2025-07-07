@@ -77,20 +77,25 @@ rust-project/
 ```rust
 // Use thiserror for custom error types
 #[derive(Debug, thiserror::Error)]
-pub enum MyError {
+pub enum AppError {
+    #[error("Database error: {0}")]
+    Database(#[from] sqlx::Error),
+    #[error("Validation error: {message}")]
+    Validation { message: String },
+    #[error("Not found: {resource}")]
+    NotFound { resource: String },
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-    
-    #[error("Validation failed: {message}")]
-    Validation { message: String },
 }
 
+pub type Result<T> = std::result::Result<T, AppError>;
+
 // Prefer ? operator for error propagation
-fn fallible_operation() -> Result<String, MyError> {
+fn fallible_operation() -> Result<String> {
     let content = std::fs::read_to_string("file.txt")?;
     
     if content.is_empty() {
-        return Err(MyError::Validation {
+        return Err(AppError::Validation {
             message: "File is empty".to_string(),
         });
     }
@@ -104,17 +109,40 @@ fn fallible_operation() -> Result<String, MyError> {
 ```rust
 // Use tokio for async runtime
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     let result = fetch_data().await?;
     process_data(result).await?;
     Ok(())
 }
 
 // Proper async error handling
-async fn fetch_data() -> Result<Data, reqwest::Error> {
-    let response = reqwest::get("https://api.example.com/data").await?;
-    let data = response.json::<Data>().await?;
+async fn fetch_data() -> Result<Data> {
+    let response = reqwest::get("https://api.example.com/data").await
+        .map_err(|e| AppError::Validation { message: format!("HTTP request failed: {}", e) })?;
+    let data = response.json::<Data>().await
+        .map_err(|e| AppError::Validation { message: format!("JSON parsing failed: {}", e) })?;
     Ok(data)
+}
+
+// Concurrent processing pattern
+pub async fn process_items(items: Vec<Item>) -> Vec<Result<ProcessedItem>> {
+    use futures::stream::{self, StreamExt};
+
+    stream::iter(items)
+        .map(|item| async move { process_item(item).await })
+        .buffer_unordered(10)
+        .collect()
+        .await
+}
+
+// Parallel operations with tokio::join!
+async fn fetch_multiple_data() -> Result<(Data1, Data2)> {
+    let (result1, result2) = tokio::join!(
+        fetch_data_source1(),
+        fetch_data_source2()
+    );
+    
+    Ok((result1?, result2?))
 }
 ```
 
@@ -180,6 +208,30 @@ cargo outdated                  # Dependency updates
 
 ## Common Patterns
 
+### Input Validation
+```rust
+use serde::{Deserialize, Serialize};
+use validator::{Validate, ValidationError};
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct CreateUserRequest {
+    #[validate(email)]
+    pub email: String,
+    #[validate(length(min = 2, max = 50))]
+    pub name: String,
+    #[validate(length(min = 8))]
+    pub password: String,
+}
+
+pub fn validate_user_input(input: &CreateUserRequest) -> Result<()> {
+    input.validate()
+        .map_err(|e| AppError::Validation { 
+            message: format!("Invalid input: {}", e) 
+        })?;
+    Ok(())
+}
+```
+
 ### Iterator Usage
 ```rust
 // Prefer functional style
@@ -210,8 +262,10 @@ let processed = input
 // Pattern matching for complex cases
 match try_operation() {
     Ok(value) => process_success(value),
-    Err(MyError::Validation { message }) => handle_validation_error(message),
-    Err(MyError::Io(err)) => handle_io_error(err),
+    Err(AppError::Validation { message }) => handle_validation_error(message),
+    Err(AppError::Database(err)) => handle_database_error(err),
+    Err(AppError::NotFound { resource }) => handle_not_found(resource),
+    Err(AppError::Io(err)) => handle_io_error(err),
 }
 ```
 
