@@ -159,9 +159,9 @@ prp/
     prp_base_go.md    # Go-specific template
     prp_base_bun.md   # Bun/TypeScript template
   scripts/            # PRP runner and utilities
-  ai_docs/            # Curated Claude Code documentation
+  docs/            # Curated Claude Code documentation
   *.md                # Active and example PRPs
-claude_md_files/      # Language-specific development guidelines
+CLAUDE/      # Language-specific development guidelines
   CLAUDE-RUST.md      # Rust development standards
   CLAUDE-GO.md        # Go development standards  
   CLAUDE-BUN.md       # Bun/TypeScript standards

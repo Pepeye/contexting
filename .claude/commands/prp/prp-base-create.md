@@ -20,7 +20,7 @@ The AI agent only gets the context you are appending to the PRP and its own trai
 2. **External Research at scale**
    - Create clear todos and spawn with instructions subagents to do deep research for similar features/patterns online and include urls to documentation and examples
    - Library documentation (include specific URLs)
-   - For critical pieces of documentation add a .md file to prp/ai_docs and reference it in the PRP with clear reasoning and instructions
+   - For critical pieces of documentation add a .md file to docs and reference it in the PRP with clear reasoning and instructions
    - Implementation examples (GitHub/StackOverflow/blogs)
    - Best practices and common pitfalls found during research
    - Use the batch tools to spawn subagents to search for similar features/patterns online and include urls to documentation and examples
