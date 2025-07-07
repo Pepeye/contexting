@@ -12,22 +12,31 @@ This is a **PRP (Product Requirement Prompt) Framework** repository, not a tradi
 
 - **28+ pre-configured Claude Code commands** in `.claude/commands/`
 - Commands organized by function:
-  - `PRPs/` - PRP creation and execution workflows
-  - `development/` - Core development utilities (prime-core, onboarding, debug)
-  - `code-quality/` - Review and refactoring commands
-  - `rapid-development/experimental/` - Parallel PRP creation and hackathon tools
-  - `git-operations/` - Conflict resolution and smart git operations
+  - `prp/` - PRP creation and execution workflows
+  - `dev/` - Core development utilities (prime-core, onboarding, debug)
+  - `quality/` - Review and refactoring commands
+  - `lab/experimental/` - Parallel PRP creation and hackathon tools
+  - `git/` - Conflict resolution and smart git operations
+  - `rust/`, `go/`, `bun/` - Language-specific commands and workflows
 
-### Template-Based Methodology
+### Multi-Language Template System
 
-- **PRP Templates** in `PRPs/templates/` follow structured format with validation loops
+- **PRP Templates** in `prp/templates/` follow structured format with validation loops
+- **Language-Specific Templates**: 
+  - `prp_base_rust.md` - Rust with cargo validation patterns
+  - `prp_base_go.md` - Go with idiomatic patterns and go toolchain
+  - `prp_base_bun.md` - Bun/TypeScript with modern JavaScript features
+  - `prp_base.md` - General template for other languages
 - **Context-Rich Approach**: Every PRP must include comprehensive documentation, examples, and gotchas
 - **Validation-First Design**: Each PRP contains executable validation gates (syntax, tests, integration)
 
 ### AI Documentation Curation
 
-- `PRPs/ai_docs/` contains curated Claude Code documentation for context injection
-- `claude_md_files/` provides framework-specific CLAUDE.md examples
+- `prp/ai_docs/` contains curated Claude Code documentation for context injection
+- `claude_md_files/` provides framework-specific CLAUDE.md examples:
+  - `CLAUDE-RUST.md` - Comprehensive Rust development guidelines
+  - `CLAUDE-GO.md` - Go idioms and best practices
+  - `CLAUDE-BUN.md` - Bun/TypeScript development standards
 
 ## Development Commands
 
@@ -35,13 +44,13 @@ This is a **PRP (Product Requirement Prompt) Framework** repository, not a tradi
 
 ```bash
 # Interactive mode (recommended for development)
-uv run PRPs/scripts/prp_runner.py --prp [prp-name] --interactive
+uv run prp/scripts/prp_runner.py --prp [prp-name] --interactive
 
 # Headless mode (for CI/CD)
-uv run PRPs/scripts/prp_runner.py --prp [prp-name] --output-format json
+uv run prp/scripts/prp_runner.py --prp [prp-name] --output-format json
 
 # Streaming JSON (for real-time monitoring)
-uv run PRPs/scripts/prp_runner.py --prp [prp-name] --output-format stream-json
+uv run prp/scripts/prp_runner.py --prp [prp-name] --output-format stream-json
 ```
 
 ### Key Claude Commands
@@ -72,14 +81,23 @@ uv run PRPs/scripts/prp_runner.py --prp [prp-name] --output-format stream-json
 
 ### Validation Gates (Must be Executable)
 
-```bash
-# Level 1: Syntax & Style
-ruff check --fix && mypy .
+Language-specific validation patterns:
 
-# Level 2: Unit Tests
+```bash
+# Python Projects
+ruff check --fix && mypy .
 uv run pytest tests/ -v
 
-# Level 3: Integration
+# Rust Projects  
+cargo check && cargo clippy -- -D warnings && cargo test && cargo fmt --check
+
+# Go Projects
+go build ./... && go vet ./... && go test ./... && gofmt -d .
+
+# Bun/TypeScript Projects
+bun run typecheck && bun test && bun run lint && bun run build
+
+# Integration Testing
 uv run uvicorn main:app --reload
 curl -X POST http://localhost:8000/endpoint -H "Content-Type: application/json" -d '{...}'
 
@@ -106,7 +124,7 @@ curl -X POST http://localhost:8000/endpoint -H "Content-Type: application/json" 
 ### When Executing PRPs
 
 1. **Load PRP**: Read and understand all context and requirements
-2. **ULTRATHINK**: Create comprehensive plan, break down into todos, use subagents, batch tool etc check prps/ai_docs/
+2. **ULTRATHINK**: Create comprehensive plan, break down into todos, use subagents, batch tool etc check prp/ai_docs/
 3. **Execute**: Implement following the blueprint
 4. **Validate**: Run each validation command, fix failures
 5. **Complete**: Ensure all checklist items done
@@ -122,17 +140,32 @@ curl -X POST http://localhost:8000/endpoint -H "Content-Type: application/json" 
 ## Project Structure Understanding
 
 ```
-PRPs-agentic-eng/
+contexting/
 .claude/
   commands/           # 28+ Claude Code commands
+    prp/              # PRP creation and execution
+    dev/              # Core development utilities  
+    quality/          # Review and refactoring
+    git/              # Git operations
+    lab/              # Experimental workflows
+    rust/             # Rust-specific commands
+    go/               # Go-specific commands
+    bun/              # Bun/TypeScript commands
   settings.local.json # Tool permissions
-PRPs/
-  templates/          # PRP templates with validation
-  scripts/           # PRP runner and utilities
-  ai_docs/           # Curated Claude Code documentation
-   *.md               # Active and example PRPs
- claude_md_files/        # Framework-specific CLAUDE.md examples
- pyproject.toml         # Python package configuration
+prp/
+  templates/          # Multi-language PRP templates
+    prp_base.md       # General template
+    prp_base_rust.md  # Rust-specific template
+    prp_base_go.md    # Go-specific template
+    prp_base_bun.md   # Bun/TypeScript template
+  scripts/            # PRP runner and utilities
+  ai_docs/            # Curated Claude Code documentation
+  *.md                # Active and example PRPs
+claude_md_files/      # Language-specific development guidelines
+  CLAUDE-RUST.md      # Rust development standards
+  CLAUDE-GO.md        # Go development standards  
+  CLAUDE-BUN.md       # Bun/TypeScript standards
+pyproject.toml        # Python package configuration
 ```
 
 Remember: This framework is about **one-pass implementation success through comprehensive context and validation**. Every PRP should contain the exact context for an AI agent to successfully implement working code in a single pass.
