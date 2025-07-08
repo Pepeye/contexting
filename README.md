@@ -278,7 +278,7 @@ Use the PRP runner in headless mode:
 # GitHub Actions example
 - name: Execute PRP
   run: |
-    uv run PRPs/scripts/prp_runner.py \
+    uv run scripts/prp_runner.py \
       --prp implement-feature \
       --output-format json > result.json
 ```
@@ -301,7 +301,7 @@ Do something specific to my project.
 
 ## Resources Included
 
-### Documentation (PRPs/ai_docs/)
+### Documentation (docs/)
 
 - `cc_base.md` - Core Claude Code documentation
 - `cc_actions_sdk.md` - GitHub Actions and SDK integration
@@ -309,7 +309,7 @@ Do something specific to my project.
 - `cc_settings.md` - Configuration and security
 - `cc_tutorials.md` - Step-by-step tutorials
 
-### Templates (PRPs/templates/)
+### Templates (prp/templates/)
 
 - `prp_base.md` - Comprehensive PRP template with validation
 - `prp_spec.md` - Specification template
@@ -317,4 +317,4 @@ Do something specific to my project.
 
 ### Previo PRP
 
-- [`prp/example.md`](prp/example.md) - My example prds; currently simplifying
+- [`prp/example.md`](prp/example.md) - A condensed PRP example.
